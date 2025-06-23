@@ -41,10 +41,9 @@ PHP_FUNCTION(var_send)
 
     zval *args = NULL;
     int argc = 0;
-    char buffer[1024];
     int sock;
     struct sockaddr_in server;
-    smart_str export_str = {0};
+    smart_str var_data_str = {0}; // Used to build data for each variable
 
     ZEND_PARSE_PARAMETERS_START(1, -1)
         Z_PARAM_VARIADIC('+', args, argc)
@@ -62,7 +61,7 @@ PHP_FUNCTION(var_send)
     server.sin_port = htons(VAR_SEND_G(server_port));
 
     struct timeval tv;
-    tv.tv_sec = 1;
+    tv.tv_sec = 1;  // 1 second timeout for send/receive
     tv.tv_usec = 0;
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
     setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
@@ -75,12 +74,10 @@ PHP_FUNCTION(var_send)
     }
 
     for (int i = 0; i < argc; i++) {
-        snprintf(buffer, sizeof(buffer), "\n--- Variable #%d ---\n", i+1);
-        if (send(sock, buffer, strlen(buffer), 0) < 0) {
-            php_error_docref(NULL, E_WARNING, "Send failed for var_send header");
-            close(sock);
-            RETURN_FALSE;
-        }
+        smart_str_free(&var_data_str); // Free for reuse in loop
+        smart_str_appends(&var_data_str, "\n--- Variable #");
+        smart_str_append_long(&var_data_str, i + 1);
+        smart_str_appends(&var_data_str, " ---\n");
 
         const char *type_str;
         switch (Z_TYPE(args[i])) {
@@ -95,80 +92,64 @@ PHP_FUNCTION(var_send)
             case IS_RESOURCE:  type_str = "resource"; break;
             default:           type_str = "unknown type"; break;
         }
-
-        snprintf(buffer, sizeof(buffer), "Type: %s\n", type_str);
-        if (send(sock, buffer, strlen(buffer), 0) < 0) {
-            php_error_docref(NULL, E_WARNING, "Send failed for var_send type");
-            close(sock);
-            RETURN_FALSE;
-        }
+        smart_str_appends(&var_data_str, "Type: ");
+        smart_str_appends(&var_data_str, type_str);
+        smart_str_appendc(&var_data_str, '\n');
 
         if (Z_TYPE(args[i]) != IS_ARRAY && Z_TYPE(args[i]) != IS_OBJECT && Z_TYPE(args[i]) != IS_RESOURCE) {
             zval tmp_zval;
-            ZVAL_STR(&tmp_zval, zval_get_string(&args[i]));
+            ZVAL_STR(&tmp_zval, zval_get_string(&args[i])); // Convert to string if not already
 
-            snprintf(buffer, sizeof(buffer), "Value: %s\n", Z_STRVAL(tmp_zval));
-            if (send(sock, buffer, strlen(buffer), 0) < 0) {
-                zval_ptr_dtor(&tmp_zval);
-                php_error_docref(NULL, E_WARNING, "Send failed for var_send value");
-                close(sock);
-                RETURN_FALSE;
-            }
+            smart_str_appends(&var_data_str, "Value: ");
+            smart_str_appendl(&var_data_str, Z_STRVAL(tmp_zval), Z_STRLEN(tmp_zval));
+            smart_str_appendc(&var_data_str, '\n');
 
             zval_ptr_dtor(&tmp_zval);
         } else if (Z_TYPE(args[i]) == IS_ARRAY) {
-            snprintf(buffer, sizeof(buffer), "Array with %d elements\n", zend_array_count(Z_ARRVAL(args[i])));
-            if (send(sock, buffer, strlen(buffer), 0) < 0) {
-                php_error_docref(NULL, E_WARNING, "Send failed for var_send array info");
-                close(sock);
-                RETURN_FALSE;
-            }
+            smart_str_appends(&var_data_str, "Array with ");
+            smart_str_append_long(&var_data_str, zend_array_count(Z_ARRVAL(args[i])));
+            smart_str_appends(&var_data_str, " elements\n");
 
-            smart_str_free(&export_str);
-            smart_str_appendl(&export_str, "Array contents: ", 16);
-            php_var_export_ex(&args[i], 0, &export_str);
-            smart_str_0(&export_str);
+            smart_str_appends(&var_data_str, "Array contents: ");
+            php_var_export_ex(&args[i], 0, &var_data_str); // Append directly to var_data_str
+            smart_str_appendc(&var_data_str, '\n');
 
-            if (ZSTR_LEN(export_str.s) > 0) {
-                if (send(sock, ZSTR_VAL(export_str.s), ZSTR_LEN(export_str.s), 0) < 0) {
-                    smart_str_free(&export_str);
-                    php_error_docref(NULL, E_WARNING, "Send failed for var_send array export");
-                    close(sock);
-                    RETURN_FALSE;
-                }
-                send(sock, "\n", 1, 0);
-            }
         } else if (Z_TYPE(args[i]) == IS_OBJECT) {
             const char *class_name = ZSTR_VAL(Z_OBJCE(args[i])->name);
-            snprintf(buffer, sizeof(buffer), "Object of class '%s'\n", class_name);
-            if (send(sock, buffer, strlen(buffer), 0) < 0) {
-                php_error_docref(NULL, E_WARNING, "Send failed for var_send object info");
+            smart_str_appends(&var_data_str, "Object of class '");
+            smart_str_appends(&var_data_str, class_name);
+            smart_str_appends(&var_data_str, "'\n");
+
+            smart_str_appends(&var_data_str, "Object contents: ");
+            php_var_export_ex(&args[i], 0, &var_data_str); // Append directly to var_data_str
+            smart_str_appendc(&var_data_str, '\n');
+
+        } else if (Z_TYPE(args[i]) == IS_RESOURCE) {
+            const char *resource_type = zend_rsrc_list_get_rsrc_type(Z_RES(args[i]));
+            smart_str_appends(&var_data_str, "Resource ID #");
+            smart_str_append_long(&var_data_str, (long long)Z_RES(args[i])->handle);
+            smart_str_appends(&var_data_str, " of type ");
+            smart_str_appends(&var_data_str, resource_type ? resource_type : "unknown");
+            smart_str_appendc(&var_data_str, '\n');
+        }
+
+        smart_str_0(&var_data_str); // Null-terminate the string
+
+        if (ZSTR_LEN(var_data_str.s) > 0) {
+            uint32_t message_len_nbo = htonl(ZSTR_LEN(var_data_str.s)); // Convert length to network byte order
+
+            // Send the length prefix
+            if (send(sock, &message_len_nbo, sizeof(message_len_nbo), 0) < 0) {
+                php_error_docref(NULL, E_WARNING, "Send failed for var_send message length prefix");
+                smart_str_free(&var_data_str);
                 close(sock);
                 RETURN_FALSE;
             }
 
-            smart_str_free(&export_str);
-            smart_str_appendl(&export_str, "Object contents: ", 17);
-            php_var_export_ex(&args[i], 0, &export_str);
-            smart_str_0(&export_str);
-
-            if (ZSTR_LEN(export_str.s) > 0) {
-                if (send(sock, ZSTR_VAL(export_str.s), ZSTR_LEN(export_str.s), 0) < 0) {
-                    smart_str_free(&export_str);
-                    php_error_docref(NULL, E_WARNING, "Send failed for var_send object export");
-                    close(sock);
-                    RETURN_FALSE;
-                }
-                send(sock, "\n", 1, 0);
-            }
-        } else if (Z_TYPE(args[i]) == IS_RESOURCE) {
-            const char *resource_type = zend_rsrc_list_get_rsrc_type(Z_RES(args[i]));
-            snprintf(buffer, sizeof(buffer), "Resource ID #%lld of type %s\n",
-                     (long long)Z_RES(args[i])->handle,
-                     resource_type ? resource_type : "unknown");
-
-            if (send(sock, buffer, strlen(buffer), 0) < 0) {
-                php_error_docref(NULL, E_WARNING, "Send failed for var_send resource info");
+            // Send the actual message data
+            if (send(sock, ZSTR_VAL(var_data_str.s), ZSTR_LEN(var_data_str.s), 0) < 0) {
+                php_error_docref(NULL, E_WARNING, "Send failed for var_send data");
+                smart_str_free(&var_data_str);
                 close(sock);
                 RETURN_FALSE;
             }
@@ -176,7 +157,7 @@ PHP_FUNCTION(var_send)
     }
 
     // Clean up
-    smart_str_free(&export_str);
+    smart_str_free(&var_data_str);
     close(sock);
     RETURN_TRUE;
 }

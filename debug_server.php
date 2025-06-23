@@ -38,22 +38,70 @@ while (true) {
     socket_getpeername($client, $address, $port);
     echo "New connection from {$address}:{$port}\n";
 
-    $data = '';
-    while ($buf = socket_read($client, 2048, PHP_BINARY_READ)) {
+    try {
+        while (true) {
+            // Read the 4-byte length prefix
+            $lengthPrefix = socket_read($client, 4, PHP_BINARY_READ);
 
-        $data .= $buf;
-        // For simplicity, we assume each message is complete on its own
-        if (strlen($buf) < 2048) {
-            break;
-        }
+            if ($lengthPrefix === false || strlen($lengthPrefix) < 4) {
+                if (strlen($lengthPrefix) === 0 && socket_last_error($client) == 0) {
+                    // Graceful client disconnect, no more messages
+                    echo "Client {$address}:{$port} disconnected gracefully (no more messages).\n";
+                } else if (strlen($lengthPrefix) > 0 && strlen($lengthPrefix) < 4) {
+                    echo "Error: Incomplete length prefix received from {$address}:{$port}. Expected 4 bytes, got " . strlen($lengthPrefix) . ". Client may have disconnected.\n";
+                } else {
+                    $lastError = socket_last_error($client);
+                    // 104: Connection reset by peer (client closed abruptly)
+                    // 0 can also mean client closed socket after sending all data.
+                    if ($lastError != 0 && $lastError != 104) {
+                        echo "socket_read() for length failed for {$address}:{$port}: reason: " . socket_strerror($lastError) . "\n";
+                    } else if ($lastError == 104) {
+                        echo "Client {$address}:{$port} disconnected (connection reset by peer).\n";
+                    } else {
+                        // Potentially clean disconnect if this was the first read attempt on a closed socket
+                        echo "Client {$address}:{$port} appears to have disconnected.\n";
+                    }
+                }
+                break; // Break from inner while loop (message reading loop)
+            }
+
+            // Unpack the length (network byte order - unsigned long)
+            $unpacked = unpack('Nlen', $lengthPrefix);
+            $messageLength = $unpacked['len'];
+
+            if ($messageLength > 0) {
+                $messageData = '';
+                $bytesRemaining = $messageLength;
+
+                while ($bytesRemaining > 0) {
+                    $chunk = socket_read($client, $bytesRemaining, PHP_BINARY_READ);
+                    if ($chunk === false || strlen($chunk) === 0) {
+                        $lastError = socket_last_error($client);
+                        if ($lastError != 0 && $lastError != 104) {
+                           echo "socket_read() for message data failed for {$address}:{$port}: reason: " . socket_strerror($lastError) . "\n";
+                        }
+                        echo "Error: Client {$address}:{$port} disconnected while sending message body. Expected $messageLength bytes, received " . strlen($messageData) . "\n";
+                        break 2; // Break from both while loops (message reading and client connection loop)
+                    }
+                    $messageData .= $chunk;
+                    $bytesRemaining -= strlen($chunk);
+                }
+
+                if ($bytesRemaining === 0) {
+                    $timestamp = date('Y-m-d H:i:s');
+                    echo "\n===== VAR_SEND [{$timestamp}] FROM {$address}:{$port} ({$messageLength} bytes) =====\n";
+                    echo $messageData . "\n"; // The data itself usually ends with a newline from the C extension
+                    echo "=====" . str_repeat("=", strlen($timestamp) + strlen($address) + strlen((string)$port) + strlen((string)$messageLength) + 27) . "\n\n";
+                }
+            } else if ($messageLength === 0) {
+                // This case should ideally not happen if client always sends data.
+                echo "Received message with zero length from {$address}:{$port}.\n";
+            }
+        } // End of message reading loop
+    } catch (Exception $e) {
+        echo "Error during client {$address}:{$port} communication: " . $e->getMessage() . "\n";
+    } finally {
+        echo "Closing connection from {$address}:{$port}\n";
+        socket_close($client);
     }
-
-    if (!empty($data)) {
-        $timestamp = date('Y-m-d H:i:s');
-        echo "\n===== VAR_SEND [{$timestamp}] FROM {$address}:{$port} =====\n";
-        echo $data . "\n";
-        echo "=====" . str_repeat("=", strlen($timestamp) + strlen($address) + strlen((string)$port) + 19) . "\n\n";
-    }
-
-    socket_close($client);
 }
