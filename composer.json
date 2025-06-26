@@ -1,0 +1,17 @@
+{
+    "name": "var_send/extension-tests",
+    "description": "E2E tests for var_send PHP extension",
+    "type": "project",
+    "require-dev": {
+        "phpunit/phpunit": "^9.0"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "VarSend\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit tests/",
+        "test-with-extension": "php -d extension=./modules/var_send.so vendor/bin/phpunit tests/"
+    }
+}
