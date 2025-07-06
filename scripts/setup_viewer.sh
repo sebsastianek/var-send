@@ -4,6 +4,9 @@
 echo "🚀 Setting up var_send Debug Viewer"
 echo "==================================="
 
+# Navigate to Python debug server directory
+cd src/debug-server/python/
+
 # Create virtual environment if it doesn't exist
 if [ ! -d "venv" ]; then
     echo "📦 Creating Python virtual environment..."
@@ -22,9 +25,10 @@ echo ""
 echo "✅ Setup complete!"
 echo ""
 echo "🎯 Usage:"
-echo "  1. Activate the environment:  source venv/bin/activate"
-echo "  2. Start the debug viewer:    python debug_viewer.py"
-echo "  3. Optional parameters:"
+echo "  1. Navigate to debug viewer:  cd src/debug-server/python/"
+echo "  2. Activate the environment:  source venv/bin/activate"
+echo "  3. Start the debug viewer:    python debug_viewer.py"
+echo "  4. Optional parameters:"
 echo "     --host 0.0.0.0            (bind to all interfaces)"
 echo "     --port 9001               (custom port)"
 echo ""

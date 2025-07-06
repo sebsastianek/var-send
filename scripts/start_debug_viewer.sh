@@ -4,9 +4,12 @@
 echo "🎯 Starting var_send Debug Viewer"
 echo "================================"
 
+# Navigate to Python debug server directory
+cd src/debug-server/python/
+
 # Check if virtual environment exists
 if [ ! -d "venv" ]; then
-    echo "❌ Virtual environment not found. Please run: ./setup_viewer.sh"
+    echo "❌ Virtual environment not found. Please run: ./scripts/setup_viewer.sh"
     exit 1
 fi
 

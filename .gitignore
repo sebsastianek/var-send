@@ -83,7 +83,6 @@ appveyor.yml
 .styleci.yml
 phpcs.xml
 phpcs.xml.dist
-phpunit.xml
 phpunit.xml.dist
 psalm.xml
 psalm.xml.dist

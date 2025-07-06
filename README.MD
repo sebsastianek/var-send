@@ -9,6 +9,36 @@ The `var_send` extension provides a function similar to PHP's built-in `var_dump
 - Debugging API endpoints where you can't have output in the response
 - Collecting debug information from multiple sources in complex ecosystems
 
+## Project Structure
+
+```
+var_send/
+├── config.m4                        # PHP extension configuration
+├── src/
+│   ├── core/
+│   │   ├── php_var_send.h          # Extension header file
+│   │   └── var_send.c              # Extension source code
+│   └── debug-server/
+│       ├── php/
+│       │   └── debug_server.php    # Simple PHP debug server
+│       └── python/
+│           ├── debug_viewer.py     # Python terminal GUI viewer
+│           └── requirements.txt    # Python dependencies
+├── examples/
+│   ├── example.php                 # Basic usage example
+│   └── simple_test.php            # Simple test script
+├── scripts/
+│   ├── install.sh                  # Installation script
+│   ├── run_tests.sh               # Test runner script
+│   ├── setup_viewer.sh            # Python viewer setup
+│   └── start_debug_viewer.sh      # Viewer startup script
+├── tests/                          # PHP unit tests and test utilities
+│   ├── *.php                      # Test files and bootstrap
+│   └── TestServer.php             # Test server helper
+├── docs/                          # Documentation assets
+└── phpunit.xml                    # PHPUnit configuration
+```
+
 ## Installation
 
 ### Prerequisites
@@ -22,7 +52,7 @@ The `var_send` extension provides a function similar to PHP's built-in `var_dump
 
 Use the provided install script for automatic setup:
 ```bash
-./install.sh
+./scripts/install.sh
 ```
 
 #### Manual Installation
@@ -96,19 +126,19 @@ Interactive terminal UI application with advanced features:
 **Installation:**
 ```bash
 # Setup debug viewer dependencies
-./setup_viewer.sh
+./scripts/setup_viewer.sh
 
 # Start the viewer
-python debug_viewer.py
+./scripts/start_debug_viewer.sh
 ```
 
 **Usage:**
 ```bash
 # Default (listens on 127.0.0.1:9001)
-python debug_viewer.py
+python src/debug-server/python/debug_viewer.py
 
 # Custom host/port
-python debug_viewer.py --host 0.0.0.0 --port 9002
+python src/debug-server/python/debug_viewer.py --host 0.0.0.0 --port 9002
 ```
 
 ### Simple PHP Debug Server
@@ -116,7 +146,7 @@ python debug_viewer.py --host 0.0.0.0 --port 9002
 A basic console-based debug server for simple debugging needs:
 
 ```bash
-php debug_server.php
+php src/debug-server/php/debug_server.php
 ```
 
 This server listens on 0.0.0.0:9001 and displays received debugging information directly to the console.

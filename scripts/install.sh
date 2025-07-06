@@ -107,16 +107,20 @@ setup_python_env() {
     fi
     
     # Create virtual environment if it doesn't exist
-    if [ ! -d "venv" ]; then
+    if [ ! -d "src/debug-server/python/venv" ]; then
         print_status "Creating Python virtual environment..."
+        cd src/debug-server/python/
         $PYTHON_CMD -m venv venv
+        cd ../../../
     fi
     
     # Activate virtual environment and install requirements
     print_status "Installing Python dependencies..."
+    cd src/debug-server/python/
     source venv/bin/activate
     pip install -r requirements.txt
     deactivate
+    cd ../../../
     
     print_status "Python environment setup complete"
 }
@@ -209,8 +213,8 @@ main() {
     echo
     echo "Next steps:"
     echo "1. Restart your web server (Apache/Nginx/PHP-FPM)"
-    echo "2. Start the debug server: php debug_server.php"
-    echo "3. Test the extension with: php example.php"
+    echo "2. Start the debug server: php src/debug-server/php/debug_server.php"
+    echo "3. Test the extension with: php examples/example.php"
     echo
     echo "For more information, see README.MD"
 }
