@@ -18,6 +18,15 @@ The `var_send` extension provides a function similar to PHP's built-in `var_dump
 
 ### Build and Install
 
+#### Quick Install (Recommended)
+
+Use the provided install script for automatic setup:
+```bash
+./install.sh
+```
+
+#### Manual Installation
+
 1. Prepare the build environment:
    ```
    phpize

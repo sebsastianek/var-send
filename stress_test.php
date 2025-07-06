@@ -41,11 +41,25 @@ var_send("Completed rapid messages test.");
 // Test 4: Object with lots of properties
 echo "Sending object with many properties...\n";
 class BigObject {
+    private array $properties = [];
+
     public function __construct() {
         for ($i = 0; $i < 500; $i++) {
             $propName = "property" . $i;
-            $this->$propName = "This is value for property " . $i . " " . str_repeat("obj_padding ", 10);
+            $this->properties[$propName] = "This is value for property " . $i . " " . str_repeat("obj_padding ", 10);
         }
+    }
+
+    public function __get($name) {
+        return $this->properties[$name] ?? null;
+    }
+
+    public function __set($name, $value) {
+        $this->properties[$name] = $value;
+    }
+
+    public function __isset($name) {
+        return isset($this->properties[$name]);
     }
 }
 $bigObject = new BigObject();

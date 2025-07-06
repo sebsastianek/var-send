@@ -159,3 +159,22 @@ CVS
 .libs/
 var_send.lo
 var_send.la
+
+# Python virtual environment and bytecode
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+ENV/
+.env
+
+# Python package distribution
+dist/
+build/
+*.egg-info/
+
+# Debug viewer logs
+varsend_log_*.json
