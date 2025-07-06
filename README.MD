@@ -77,15 +77,49 @@ var_send($var1, $var2, $array, $object);
 
 The extension will automatically include the file and line number in the sent data, making it easier to trace where the debug information came from.
 
-## Debug Server
+## Debug Viewers
 
-A simple sample debug server is included in the repository. Run it with:
+Two debug viewers are provided to receive and display var_send data:
 
+### Python Debug Viewer (Recommended)
+
+Interactive terminal UI application with advanced features:
+
+![Python Debug Viewer](docs/panel_preview.png)
+
+**Features:**
+- Terminal interface with tabbed content
+- Real-time message filtering and search
+- Message statistics and client tracking
+- Multi-variable support with inspection
+
+**Installation:**
+```bash
+# Setup debug viewer dependencies
+./setup_viewer.sh
+
+# Start the viewer
+python debug_viewer.py
 ```
+
+**Usage:**
+```bash
+# Default (listens on 127.0.0.1:9001)
+python debug_viewer.py
+
+# Custom host/port
+python debug_viewer.py --host 0.0.0.0 --port 9002
+```
+
+### Simple PHP Debug Server
+
+A basic console-based debug server for simple debugging needs:
+
+```bash
 php debug_server.php
 ```
 
-By default, it listens on 0.0.0.0:9001 and displays any received debugging information to the console.
+This server listens on 0.0.0.0:9001 and displays received debugging information directly to the console.
 
 ## Example
 
