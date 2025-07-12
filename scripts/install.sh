@@ -93,17 +93,6 @@ install_php_extension() {
 }
 
 
-# Install Composer dependencies
-install_composer_deps() {
-    if command -v composer &> /dev/null; then
-        print_status "Installing Composer dependencies..."
-        composer install
-        print_status "Composer dependencies installed"
-    else
-        print_warning "Composer not found. Skipping PHP dependencies installation."
-        print_warning "Install Composer and run 'composer install' to install test dependencies."
-    fi
-}
 
 # Configure PHP extension
 configure_extension() {
@@ -194,7 +183,6 @@ main() {
     check_sudo
     check_prerequisites
     install_php_extension
-    install_composer_deps
     configure_extension
     verify_installation
     
