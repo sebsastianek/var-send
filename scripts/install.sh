@@ -92,38 +92,6 @@ install_php_extension() {
     print_status "PHP extension compiled and installed successfully"
 }
 
-# Setup Python environment for debug viewer
-setup_python_env() {
-    print_status "Setting up Python environment for debug viewer..."
-    
-    # Check if Python is available
-    if command -v python3 &> /dev/null; then
-        PYTHON_CMD="python3"
-    elif command -v python &> /dev/null; then
-        PYTHON_CMD="python"
-    else
-        print_warning "Python not found. Skipping Python environment setup."
-        return
-    fi
-    
-    # Create virtual environment if it doesn't exist
-    if [ ! -d "src/debug-server/python/venv" ]; then
-        print_status "Creating Python virtual environment..."
-        cd src/debug-server/python/
-        $PYTHON_CMD -m venv venv
-        cd ../../../
-    fi
-    
-    # Activate virtual environment and install requirements
-    print_status "Installing Python dependencies..."
-    cd src/debug-server/python/
-    source venv/bin/activate
-    pip install -r requirements.txt
-    deactivate
-    cd ../../../
-    
-    print_status "Python environment setup complete"
-}
 
 # Install Composer dependencies
 install_composer_deps() {
@@ -141,30 +109,46 @@ install_composer_deps() {
 configure_extension() {
     print_status "Configuring PHP extension..."
     
-    # Find PHP ini file
-    PHP_INI=$(php --ini | grep "Loaded Configuration File" | cut -d: -f2 | xargs)
-    
-    if [ -z "$PHP_INI" ] || [ "$PHP_INI" = "(none)" ]; then
-        print_warning "No php.ini file found. You'll need to manually add 'extension=var_send.so' to your PHP configuration."
-        return
-    fi
-    
     # Check if extension is already enabled
     if php -m | grep -q "var_send"; then
         print_status "var_send extension is already enabled"
         return
     fi
     
-    # Add extension to php.ini
-    print_status "Adding extension to php.ini: $PHP_INI"
+    # Find PHP ini file or conf.d directory
+    PHP_INI=$(php --ini | grep "Loaded Configuration File" | cut -d: -f2 | xargs)
+    CONF_D_DIR=$(php --ini | grep "Scan for additional .ini files" | cut -d: -f2 | xargs)
     
-    # Create backup
-    $SUDO_CMD cp "$PHP_INI" "$PHP_INI.backup.$(date +%Y%m%d_%H%M%S)"
-    
-    # Add extension line
-    echo "extension=var_send.so" | $SUDO_CMD tee -a "$PHP_INI"
-    
-    print_status "Extension added to php.ini"
+    # Determine where to add the extension
+    if [ -n "$PHP_INI" ] && [ "$PHP_INI" != "(none)" ] && [ -f "$PHP_INI" ]; then
+        # Use main php.ini file
+        print_status "Adding extension to php.ini: $PHP_INI"
+        
+        # Create backup
+        $SUDO_CMD cp "$PHP_INI" "$PHP_INI.backup.$(date +%Y%m%d_%H%M%S)"
+        
+        # Add extension line
+        echo "extension=var_send.so" | $SUDO_CMD tee -a "$PHP_INI"
+        
+        print_status "Extension added to php.ini"
+        
+    elif [ -n "$CONF_D_DIR" ] && [ -d "$CONF_D_DIR" ]; then
+        # Use conf.d directory
+        EXT_INI_FILE="$CONF_D_DIR/var_send.ini"
+        print_status "Adding extension to conf.d directory: $EXT_INI_FILE"
+        
+        # Create extension ini file
+        echo "extension=var_send.so" | $SUDO_CMD tee "$EXT_INI_FILE"
+        
+        print_status "Extension configuration created: $EXT_INI_FILE"
+        
+    else
+        print_warning "Could not determine PHP configuration location."
+        print_warning "Please manually add 'extension=var_send.so' to your PHP configuration."
+        print_warning "You can create a file like: /usr/local/etc/php/conf.d/var_send.ini"
+        print_warning "Or add it to your main php.ini file."
+        return
+    fi
 }
 
 # Verify installation
@@ -200,10 +184,16 @@ main() {
     echo "================================"
     echo
     
+    # Get the directory where this script is located
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+    
+    # Change to project root directory
+    cd "$PROJECT_ROOT"
+    
     check_sudo
     check_prerequisites
     install_php_extension
-    setup_python_env
     install_composer_deps
     configure_extension
     verify_installation

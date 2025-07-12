@@ -3,12 +3,17 @@
     "description": "E2E tests for var_send PHP extension",
     "type": "project",
     "require-dev": {
-        "phpunit/phpunit": "^9.0"
+        "phpunit/phpunit": "^9.0",
+        "ext-pcntl": "*",
+        "ext-sockets": "*"
     },
     "autoload-dev": {
         "psr-4": {
             "VarSend\\Tests\\": "tests/"
-        }
+        },
+        "files": [
+            "stubs/var_send.php"
+        ]
     },
     "scripts": {
         "test": "phpunit tests/",

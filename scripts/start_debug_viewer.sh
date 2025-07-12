@@ -4,12 +4,16 @@
 echo "🎯 Starting var_send Debug Viewer"
 echo "================================"
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 # Navigate to Python debug server directory
-cd src/debug-server/python/
+cd "$PROJECT_ROOT/src/debug-server/python/"
 
 # Check if virtual environment exists
 if [ ! -d "venv" ]; then
-    echo "❌ Virtual environment not found. Please run: ./scripts/setup_viewer.sh"
+    echo "❌ Virtual environment not found. Please run: ./scripts/install_viewer.sh"
     exit 1
 fi
 

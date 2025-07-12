@@ -1,11 +1,25 @@
 #!/bin/bash
 
-# Setup script for var_send Debug Viewer
-echo "🚀 Setting up var_send Debug Viewer"
+# Install script for var_send Debug Viewer
+# This script installs Python dependencies for the debug viewer
+
+set -e  # Exit immediately on any error
+
+echo "🚀 Installing var_send Debug Viewer"
 echo "==================================="
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Check if Python is available
+if ! command -v python3 &> /dev/null; then
+    echo "❌ Error: Python 3 is not installed. Please install Python 3 first."
+    exit 1
+fi
+
 # Navigate to Python debug server directory
-cd src/debug-server/python/
+cd "$PROJECT_ROOT/src/debug-server/python/"
 
 # Create virtual environment if it doesn't exist
 if [ ! -d "venv" ]; then
@@ -22,7 +36,7 @@ echo "📥 Installing dependencies..."
 pip install -r requirements.txt
 
 echo ""
-echo "✅ Setup complete!"
+echo "✅ Installation complete!"
 echo ""
 echo "🎯 Usage:"
 echo "  1. Navigate to debug viewer:  cd src/debug-server/python/"

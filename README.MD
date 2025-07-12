@@ -28,9 +28,9 @@ var_send/
 │   ├── example.php                 # Basic usage example
 │   └── simple_test.php            # Simple test script
 ├── scripts/
-│   ├── install.sh                  # Installation script
+│   ├── install.sh                  # PHP extension installation script
 │   ├── run_tests.sh               # Test runner script
-│   ├── setup_viewer.sh            # Python viewer setup
+│   ├── install_viewer.sh           # Python viewer installation script
 │   └── start_debug_viewer.sh      # Viewer startup script
 ├── tests/                          # PHP unit tests and test utilities
 │   ├── *.php                      # Test files and bootstrap
@@ -50,7 +50,7 @@ var_send/
 
 #### Quick Install (Recommended)
 
-Use the provided install script for automatic setup:
+Use the provided install script for automatic PHP extension setup:
 ```bash
 ./scripts/install.sh
 ```
@@ -125,8 +125,8 @@ Interactive terminal UI application with advanced features:
 
 **Installation:**
 ```bash
-# Setup debug viewer dependencies
-./scripts/setup_viewer.sh
+# Install debug viewer dependencies
+./scripts/install_viewer.sh
 
 # Start the viewer
 ./scripts/start_debug_viewer.sh

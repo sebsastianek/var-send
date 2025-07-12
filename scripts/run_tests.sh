@@ -6,6 +6,13 @@ set -e
 echo "🧪 Running var_send Extension E2E Tests"
 echo "========================================"
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Change to project root directory
+cd "$PROJECT_ROOT"
+
 # Check if extension module exists
 if [ ! -f "./modules/var_send.so" ]; then
     echo "❌ Extension not found. Please compile first with: make"
@@ -14,7 +21,7 @@ fi
 
 # Check if PHPUnit is installed
 if [ ! -f "./vendor/bin/phpunit" ]; then
-    echo "❌ PHPUnit not found. Please install with: php ../composer.phar install"
+    echo "❌ PHPUnit not found. Please install with: composer install"
     exit 1
 fi
 
